@@ -556,15 +556,14 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
     size_t formigasSemMelhora = 0;
     size_t iteracoesSemMelhora = 0;
     size_t lambda = 0;
+    size_t ciclosSemMelhora = 0;
 
     size_t menorNRotulos = nRotulos;
     std::vector<rotulo_t> rotulosDaMelhorSol;
 
     //Constroi a solução ao longo das Iterações
     for (it = 0; it <= nIteracoes; ++it) {
-
         bool itSemMelhora = true;
-
         //Inicializa as Probabilidades
         unique_ptr<double[]> vetorProb(new double[nRotulos]);
         inicializarProbabilidadesACO(vetorProb, vetorHeuristico, numeroTotalArestas, nRotulos);
@@ -582,6 +581,7 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
 
                 std::cout << "----- Nova Solução encontrada ! ------" << std::endl;
                 std::cout << "Melhor " << melhorSol.numeroDeRotulos() << " | " <<  "Iteração " << it << " | "  << "Formiga " << fg << " |" << std::endl;
+
                 size_t posicao;
                 rotulosDaMelhorSol.clear();
                 for (auto i : melhorSol.rotulos){
@@ -612,6 +612,7 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
 
             //Busca Local (Opcional)
         }
+        ciclosSemMelhora = 0;
 
         if (itSemMelhora)
             iteracoesSemMelhora++;
