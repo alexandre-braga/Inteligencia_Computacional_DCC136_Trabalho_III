@@ -53,7 +53,7 @@ class Grafo {
 
     private:
         Grafo algoritmoGulosoHelper(double alfa) const;
-        Grafo algoritmoACOHelper(std::unique_ptr<double[]>& vetorProb, std::unique_ptr<double[]>& vetorFeromonio, std::unique_ptr<double[]>& vetorHeuristico, size_t m, double alfa) const;
+        Grafo algoritmoACOHelper(std::unique_ptr<double[]>& vetorProb, std::unique_ptr<double[]>& vetorFeromonio, std::unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const;
         void mapeiaFeromonios(std::unique_ptr<double[]>& vetorFeromonio);
         const Vertice *getVerticeById(idvertice_t id) const;
         Vertice *getVerticeById(idvertice_t id);
