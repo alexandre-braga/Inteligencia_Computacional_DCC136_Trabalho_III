@@ -429,7 +429,7 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, std::vector<rotulo_t> listCand)
 
 static size_t selecionaRotulo(std::vector<double> P, size_t tamAtual)
 {
-    double rng = (double) (rand() % 1000) / 1000;
+    double rng = (double) (rand() % 100) / 100;
     double aux = 0;
 
     for (size_t i = 0; i < tamAtual; i++) {
@@ -572,7 +572,7 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
         for(size_t fg = 1; fg <= nFormigas; ++fg){
 
             solAux = this->algoritmoACOHelper(vetorProb, vetorFeromonio, vetorHeuristico, nRotulos, menorNRotulos);
-            std::cout << "Melhor " << melhorSol.numeroDeRotulos() << " | " <<  "Iteração " << it << " | "  << "Formiga " << fg << " | " <<  solAux.numeroDeRotulos() << " |" << std::endl;
+            //std::cout << "Melhor " << melhorSol.numeroDeRotulos() << " | " <<  "Iteração " << it << " | "  << "Formiga " << fg << " | " <<  solAux.numeroDeRotulos() << " |" << std::endl;
 
             if (isPrimeiraVez || solAux.numeroDeRotulos() < melhorSol.numeroDeRotulos()) {
                 isPrimeiraVez = false;
@@ -581,6 +581,7 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
                 formigasSemMelhora = 0;
 
                 std::cout << "----- Nova Solução encontrada ! ------" << std::endl;
+                std::cout << "Melhor " << melhorSol.numeroDeRotulos() << " | " <<  "Iteração " << it << " | "  << "Formiga " << fg << " |" << std::endl;
                 size_t posicao;
                 rotulosDaMelhorSol.clear();
                 for (auto i : melhorSol.rotulos){
@@ -599,14 +600,14 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
             }
 
             if(formigasSemMelhora >= CICLOSMAX){
-                std::cout << "Sem Melhora - Lista vertices tentados na sol" << std::endl;
-                for (auto i : solAux.rotulos){
-		            std::cout << i.first << " ";
-                }
+                //std::cout << "Sem Melhora - Lista vertices tentados na sol" << std::endl;
+                // for (auto i : solAux.rotulos){
+		        //     std::cout << i.first << " ";
+                // }
                 if(formigasSemMelhora >= 1.1*CICLOSMAX){
                     fg = nFormigas;
                 }
-                std::cout << std::endl;
+                //std::cout << std::endl;
             }
 
             //Busca Local (Opcional)
@@ -614,7 +615,7 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
 
         if (itSemMelhora)
             iteracoesSemMelhora++;
-        else 
+        else
             iteracoesSemMelhora = 0;
 
         formigasSemMelhora = 0;
@@ -624,12 +625,13 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
 
         // if (it % bloco == 0) {
         if (iteracoesSemMelhora >= bloco){
+            //std::cout << "Hello Thais" << std::endl;
             //Smoothing (Opcional)
             if (iteracoesSemMelhora < bloco * 2){
                 // if (lambda < lambda_max){
                 lambda += lambda_max / bloco;
                 // }
-
+                //std::cerr << "Hello Thais, não melhora há " << iteracoesSemMelhora << " anos" << std::endl;
                 double maxValor = *std::max_element(vetorFeromonio.get(), vetorFeromonio.get() + nRotulos);
                 double minValor = *std::min_element(vetorFeromonio.get(), vetorFeromonio.get() + nRotulos);
 
@@ -638,14 +640,16 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
                 for (size_t i = 0; i < nRotulos; ++i) {
                     vetorFeromonio[i] = vetorFeromonio[i] + smoothing;
                 }
-            } 
+            }
+
             else {
                 // if (iteracoesSemMelhora == bloco * 2){
                 inicializarFeromonios(vetorFeromonio, nRotulos, tau_min, tau_max);
                 iteracoesSemMelhora = 0;
                 lambda = 0;
                 // }
-            }           
+            }
+            //std::cerr << "Hello Thais, a iteração atual e " << it << " anos" << std::endl;
         }
 
         //Atualiza Melhor Solução (pós smoothing)
