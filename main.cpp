@@ -1,8 +1,7 @@
 /************************************************************
 *   TRABALHO DE GRAFOS - Árvore Geradora De Rotulação Mínima
 *       Alexandre Vitor Silva Braga - 201965501B
-*       Igor Correa Rodrigues       - 201965570C
-*       Marcelo Ian Rezende Menezes - 201965517B
+*       Thais de Jesus Soares - 202065511B
 ************************************************************/
 
 #include <iostream>

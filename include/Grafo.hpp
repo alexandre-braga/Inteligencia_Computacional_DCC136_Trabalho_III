@@ -49,11 +49,11 @@ class Grafo {
         Grafo algoritmoGulosoRandomizadoReativo(
                 const std::vector<double>& alfas, size_t nIteracoes,
                 size_t tamanhoBloco, double *alfaMaiorProb = nullptr) const;
-        Grafo algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, double tau_min, double tau_max) const;
+        Grafo algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double tau_min, double tau_max) const;
 
     private:
         Grafo algoritmoGulosoHelper(double alfa) const;
-        Grafo algoritmoACOHelper(std::unique_ptr<double[]>& vetorProb, std::unique_ptr<double[]>& vetorFeromonio, std::unique_ptr<double[]>& vetorHeuristico, size_t m, double alfa) const;
+        Grafo algoritmoACOHelper(std::unique_ptr<double[]>& vetorProb, std::unique_ptr<double[]>& vetorFeromonio, std::unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const;
         void mapeiaFeromonios(std::unique_ptr<double[]>& vetorFeromonio);
         const Vertice *getVerticeById(idvertice_t id) const;
         Vertice *getVerticeById(idvertice_t id);
