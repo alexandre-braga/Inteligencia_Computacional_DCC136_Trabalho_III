@@ -429,17 +429,48 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, std::vector<rotulo_t> listCand)
 
 static size_t selecionaRotulo(std::vector<double> P, size_t tamAtual)
 {
-    double rng = (double) (rand() % 100) / 100;
+    double rng = (double) (rand() % 10000) / 10000;
     double aux = 0;
-
     for (size_t i = 0; i < tamAtual; i++) {
-        aux += P[i];
-        if (rng <= aux) {
-            return i;
+        if(P[i]!=-1){
+            aux += P[i];
+            if (rng <= aux) {
+                return i;
+            }
         }
     }
     return tamAtual - 1;
 }
+
+// struct lcp
+// {
+//     rotulo_t cand;
+//     double prob;
+// };
+
+// static size_t selecionaRotulo(std::vector<double> P, size_t tamAtual)
+// {
+//     double rng = (double) (rand() % 1000) / 1000;
+//     double aux = 0;
+//     std::vector<lcp> LCP;
+
+//     for (size_t r = 0; r < tamAtual; ++r) {
+//         LCP.at(r).cand = r;
+//         LCP.at(r).prob = P[r];
+//     }
+//     //std::sort(LCP.begin(),LCP.end(), [](const lcp &x, const lcp &y){ return (x.prob < y.prob);});
+//     std::cout << "deu pau";
+//     for (size_t i = 0; i < tamAtual; i++) {
+//         if(LCP.at(i).prob!=-1){
+//             aux += LCP.at(i).prob;
+//             if (rng <= aux) {
+//                 return LCP.at(i).cand;
+//             }
+//         }
+//     }
+//     return tamAtual - 1;
+// }
+
 
 Grafo Grafo::algoritmoACOHelper(unique_ptr<double[]>& vetorProb, unique_ptr<double[]>& vetorFeromonio,
 unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
@@ -466,7 +497,7 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
         subArvore[v.id()] = v.id();
     }
 
-    //----Imprime vetor de Probabilidades----
+    // //----Imprime vetor de Probabilidades----//
     // std::cerr <<"------------------------" << std::endl;
     // std::cerr << "Lista Prob Atual: ";
     // for(size_t ind = 0; ind < m; ind++){
@@ -493,13 +524,14 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
         size_t idx = (aux < 2) ? 0 : selecionaRotulo(P, aux);
         rotulo_t r = L[idx];
 
-        //----Imprime Lista de Candidatos Atual----
+        // //----Imprime Lista de Candidatos Atual----//
         // std::cerr << "Probabilidade de Seleção: " << P[idx] << std::endl;
         // std::cerr << "Lista Cand Atual: ";
         // for(size_t ind = 0; ind < m; ind++){
         //     std::cerr << L[ind] << " ";
         // }
         // std::cerr << std::endl;
+
         //Adiciona todas arestas do rótulo
         for (const ArestaAux& a : this->rotulos.find(r)->second) {
             //verifica se aresta do rótulo Y já não foi colocada em rótulo X antes
@@ -519,6 +551,8 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
 
     return F;
 }
+
+
 
 Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double tau_min, double tau_max) const
 {
@@ -544,19 +578,18 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
         numeroArestasDoRotulo = 0;
     }
 
-    //----Imprime vetor Heurístico----
-    // std::cerr << "Vetor Heuristico: ";
-    // for (size_t i = 0; i < nRotulos; i++) {
-    //     std::cerr << vetorHeuristico[i] << ' ';
-    // }
-    // std::cerr << "------------------" << std::endl;
+    //   //  ----Imprime vetor Heurístico----
+    //     std::cerr << "Vetor Heuristico: ";
+    //     for (size_t i = 0; i < nRotulos; i++) {
+    //         std::cerr << vetorHeuristico[i] << ' ';
+    //     }
+    //     std::cerr << "------------------" << std::endl;
 
     bool isPrimeiraVez = true;
     size_t it;
     size_t formigasSemMelhora = 0;
     size_t iteracoesSemMelhora = 0;
     size_t lambda = 0;
-    size_t ciclosSemMelhora = 0;
 
     size_t menorNRotulos = nRotulos;
     std::vector<rotulo_t> rotulosDaMelhorSol;
@@ -605,14 +638,13 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
 		        //     std::cout << i.first << " ";
                 // }
                 if(formigasSemMelhora >= 1.1*CICLOSMAX){
+                    //Busca Local (Opcional)
                     fg = nFormigas;
                 }
                 //std::cout << std::endl;
             }
 
-            //Busca Local (Opcional)
         }
-        ciclosSemMelhora = 0;
 
         if (itSemMelhora)
             iteracoesSemMelhora++;
