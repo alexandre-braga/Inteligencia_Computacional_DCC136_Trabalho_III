@@ -384,7 +384,7 @@ static inline void inicializarProbabilidadesACO(unique_ptr<double[]>& vetorProb,
 static inline void atualizarFeromonios(unique_ptr<double[]>& vetorFeromonio, size_t m, std::vector<rotulo_t> rotulosDaMelhorSol)
 {
 #define RHO 0.1
-#define DELTA_L 1
+#define DELTA_L 0.5
 
     //deposition (Só nas arestas da melhor solução)
     for (size_t i = 0; i < m; ++i) {
@@ -427,49 +427,48 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, std::vector<rotulo_t> listCand)
     }
 }
 
-static size_t selecionaRotulo(std::vector<double> P, size_t tamAtual)
-{
-    double rng = (double) (rand() % 10000) / 10000;
-    double aux = 0;
-    for (size_t i = 0; i < tamAtual; i++) {
-        if(P[i]!=-1){
-            aux += P[i];
-            if (rng <= aux) {
-                return i;
-            }
-        }
-    }
-    return tamAtual - 1;
-}
-
-// struct lcp
-// {
-//     rotulo_t cand;
-//     double prob;
-// };
-
 // static size_t selecionaRotulo(std::vector<double> P, size_t tamAtual)
 // {
-//     double rng = (double) (rand() % 1000) / 1000;
+//     double rng = (double) (rand() % 10000) / 10000;
 //     double aux = 0;
-//     std::vector<lcp> LCP;
-
-//     for (size_t r = 0; r < tamAtual; ++r) {
-//         LCP.at(r).cand = r;
-//         LCP.at(r).prob = P[r];
-//     }
-//     //std::sort(LCP.begin(),LCP.end(), [](const lcp &x, const lcp &y){ return (x.prob < y.prob);});
-//     std::cout << "deu pau";
 //     for (size_t i = 0; i < tamAtual; i++) {
-//         if(LCP.at(i).prob!=-1){
-//             aux += LCP.at(i).prob;
+//         if(P[i]!=-1){
+//             aux += P[i];
 //             if (rng <= aux) {
-//                 return LCP.at(i).cand;
+//                 return i;
 //             }
 //         }
 //     }
 //     return tamAtual - 1;
 // }
+
+struct lcp
+{
+    rotulo_t cand;
+    double prob;
+};
+
+static size_t selecionaRotulo(std::vector<double> P, size_t tamAtual)
+{
+    double rng = (double) (rand() % 10000) / 10000;
+    double aux = 0;
+    std::vector<lcp> LCP (tamAtual);
+
+    for (size_t r = 0; r < tamAtual; ++r) {
+        LCP.at(r).cand = r;
+        LCP.at(r).prob = P[r];
+    }
+    std::sort(LCP.begin(),LCP.end(), [](const lcp &x, const lcp &y){ return (x.prob < y.prob);});
+    for (size_t i = 0; i < tamAtual; i++) {
+        if(LCP.at(i).prob!=-1){
+            aux += LCP.at(i).prob;
+            if (rng <= aux) {
+                return LCP.at(i).cand;
+            }
+        }
+    }
+    return tamAtual - 1;
+}
 
 
 Grafo Grafo::algoritmoACOHelper(unique_ptr<double[]>& vetorProb, unique_ptr<double[]>& vetorFeromonio,
