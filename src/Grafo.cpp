@@ -414,17 +414,9 @@ static inline void atualizarProbabilidadesACO(std::vector<lcp>& LCP, unique_ptr<
 unique_ptr<double[]>& vetorHeuristico, size_t m)
 {
 #define PESO(r) (-this->rotulos.find(r)->second.size())
-
     std::vector<TeN> ten(m);
     ten.reserve(m);
     double somatorioDeTNs = 0;
-
-    for (rotulo_t i = 0; i < m; i++ ){
-        ten.at(i).id = i;
-        ten.at(i).T = 0;
-        ten.at(i).N = 0;
-        ten.at(i).content = false;
-    }
 
     for (const auto& element : LCP) {
         rotulo_t r = element.cand;
@@ -434,13 +426,6 @@ unique_ptr<double[]>& vetorHeuristico, size_t m)
         ten.at(r).content = true;
         somatorioDeTNs += ten.at(r).T * ten.at(r).N;
     }
-
-    // for (const auto& element : ten) {
-    //     std::cerr << "ten at r " << element.id << "|" << element.T << "|" << element.N << "|" << element.content << std::endl;
-    // }
-    // std::cerr << "lcp size:" << LCP.size() << std::endl;
-    // std::cerr << "ten size:" << ten.size() << std::endl;
-
     for (rotulo_t r = 0; r < LCP.size(); r++){
 
         auto it = std::find_if(ten.begin(), ten.end(), [&LCP, r](const TeN& element) {
@@ -448,63 +433,34 @@ unique_ptr<double[]>& vetorHeuristico, size_t m)
         });
         size_t itPos = std::distance(ten.begin(), it);
 
-        // std::cerr << "itPos in Ten: " << itPos << "| Rótulo candidato a atualiza" << LCP.at(r).cand << std::endl;
-        // std::cerr << "Verifying Ten at r " << ten.at(itPos).id << "|" << ten.at(itPos).T << "|" << ten.at(itPos).N << "|" << ten.at(itPos).content << std::endl;
-        // std::cerr << "LCP at r before " << LCP.at(r).cand << "|" << LCP.at(r).prob << std::endl;
-
         if(ten.at(itPos).content){
             LCP.at(r).prob = ten.at(r).T * ten.at(r).N / somatorioDeTNs;
         }
         else{
             LCP.at(r).prob = -1;
         }
-        // std::cerr << "LCP at r after " << LCP.at(r).cand << "|" << LCP.at(r).prob << std::endl;
     }
 }
-// static inline void atualizarProbabilidadesACO(std::vector<lcp> LCP, unique_ptr<double[]>& vetorFeromonio,
-// unique_ptr<double[]>& vetorHeuristico, size_t m)
-// {
-// #define PESO(r) (-this->rotulos.find(r)->second.size())
-
-//     std::vector<TeN[]> ten(m);
-//     ten.reserve(m);
-//     double somatorioDeTNs = 0;
-
-//     for (rotulo_t i = 0; i < m; ++i) {
-//         ten.at(i).T = vetorFeromonio[i];
-//         ten.at(i).N = vetorHeuristico[i];
-//         auto it = std::find_if(LCP.begin(), LCP.end(), [i](const lcp& element) { return element.cand == i; });
-//         if(it != LCP.end()){
-//             somatorioDeTNs += T[i]*N[i];
-//         }
-//     }
-
-//     for (size_t i = 0; i < m; ++i) {
-//         auto it = std::find_if(LCP.begin(), LCP.end(), [i](const lcp& element) { return element.cand == i; });
-
-//         if(it != LCP.end()){
-//             LCP.at(i).prob = T[i]*N[i] / somatorioDeTNs;
-//         }
-//         else{
-//             LCP.at(i).prob = -1;
-//         }
-//     }
-// }
 static size_t selecionaRotulo(std::vector<lcp> LCP, size_t tamAtual)
 {
-    double rng = (double) (rand() % 10000) / 10000;
+    //Ajustezinhos no RNG pode melhorar o resultado
+    double rng = 0.01 + (double)(std::rand() % 90) / 1000;
+    //double rng = (double) (rand() % 10000) / 10000;
+
     double aux = 0;
     LCP.resize(tamAtual);
     std::sort(LCP.begin(),LCP.end(), [](const lcp &x, const lcp &y){ return (x.prob > y.prob);});
 
+    // //----Imprime LCP Ordenado----//
+    // std::cerr << "Sorted: " << std::endl;
     // for (size_t r = 0; r < tamAtual; ++r) {
-    //     std::cerr << "Sorted: " << LCP.at(r).cand << "|" << LCP.at(r).prob;
+    //     std::cerr << " - " << LCP.at(r).cand << "|" << LCP.at(r).prob;
     // }
+    // std::cerr << std::endl;
 
     for (size_t i = 0; i < tamAtual; i++) {
         aux += LCP.at(i).prob;
         if (rng <= aux) {
-            // std::cerr << "\nRetornou Cand: " << LCP.at(i).cand << "| Prob: " << LCP.at(i).prob << std::endl;
             return LCP.at(i).cand;
         }
     }
@@ -531,8 +487,11 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
     for (const Vertice& v : this->listaVertices) {
         subArvore[v.id()] = v.id();
     }
-    size_t removidos = 0;
-    std::vector<rotulo_t> rotulosRemovidos;
+
+    // debug removidos
+    // size_t removidos = 0;
+    // std::vector<rotulo_t> rotulosRemovidos;
+
     size_t subs = this->numeroDeVertices();
     while (subs > 1 && !LCP.empty()) {
 
@@ -546,23 +505,14 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
             //std::cerr << "Excedeu" << std::endl;
             return F;
         }
+
         //Atualiza a probabilidade de Cada Rótulo
         atualizarProbabilidadesACO(LCP, vetorFeromonio, vetorHeuristico, m);
 
         size_t aux = LCP.size();
-        // std::cerr << "Tam Atual LCP: " << aux << std::endl;
-        // std::cerr << "removidos: " << removidos << std::endl;
 
-        //Decide o Rótulo a ser inserido (Problema)
-        //  Melhoria possível - se criar um mapeamento do rotulo com posição no vector de probabiliade
-        //  e ordenar esse vector por probabilidade maior, a seleção de rótulo vai ser melhor (FEITO)
-        // std::cerr << "Vai dar pau selecionando" << std::endl;
-        // size_t idx = (aux < 2) ? 0 : selecionaRotulo(LCP, aux);
-        // rotulo_t r = LCP.at(idx).cand;
+        //Decide o Rótulo a ser inserido
         rotulo_t r = (aux < 2) ? 0 : selecionaRotulo(LCP, aux);
-        // std::cerr << "rótulo r: " << r << std::endl;
-        // std::cerr << "Não deu pau selecionando" << std::endl;
-        // std::cerr << "Rótulo Escolhido: " << r << std::endl;
 
         //Adiciona todas arestas do rótulo
         for (const ArestaAux& a : this->rotulos.find(r)->second) {
@@ -575,19 +525,18 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
                 }
             }
         }
-        rotulosRemovidos.push_back(r);
-        // std::cerr << "Rótulo Sendo Removido: " << r << std::endl;
-        // std::cerr << "Rótulo Removidos " << std::endl;
-        // for (rotulo_t s = 0; s < rotulosRemovidos.size(); s++){
-        //     std::cerr << rotulosRemovidos.at(s) << "-";
-        // }
-        // std::cerr << std::endl;
+
+        // debug removidos
+        // rotulosRemovidos.push_back(r);
+
         auto it = std::find_if(LCP.begin(), LCP.end(), [r](const lcp& element) {
             return element.cand == r;
         });
         size_t idx = std::distance(LCP.begin(), it);
         LCP.erase(LCP.begin() + idx);
-        removidos++;
+
+        // debug removidos
+        // removidos++;
     }
 
     return F;
