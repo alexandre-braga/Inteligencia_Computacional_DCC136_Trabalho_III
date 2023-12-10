@@ -61,7 +61,8 @@ static void gulosoRandomizadoReativo(const Grafo& g, std::ofstream& out)
 
 static void coloniaFormigas(const Grafo& g, std::ofstream& out)
 {
-    BOILER_PLATE(g.algoritmoACO(400, 1000, 20, 0.2, 0.001, 10), chrono::seconds, "s", 10, {});
+    //usage (it, fg, bloco, lambda_max, zeta_max, tau_min, tau_max)
+    BOILER_PLATE(g.algoritmoACO(400, 1000, 20, 0.2, 20, 0.001, 10), chrono::seconds, "s", 10, {});
 }
 
 static void toDots(const Grafo& g, std::ofstream& out)

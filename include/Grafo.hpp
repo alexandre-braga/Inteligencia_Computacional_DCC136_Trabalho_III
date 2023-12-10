@@ -49,7 +49,7 @@ class Grafo {
         Grafo algoritmoGulosoRandomizadoReativo(
                 const std::vector<double>& alfas, size_t nIteracoes,
                 size_t tamanhoBloco, double *alfaMaiorProb = nullptr) const;
-        Grafo algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double tau_min, double tau_max) const;
+        Grafo algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double zeta_max, double tau_min, double tau_max) const;
 
     private:
         Grafo algoritmoGulosoHelper(double alfa) const;

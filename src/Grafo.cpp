@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <iostream>
+#include <random>
 
 using namespace std;
 
@@ -410,6 +411,29 @@ static inline void atualizarFeromonios(unique_ptr<double[]>& vetorFeromonio, siz
         vetorFeromonio[i] = vetorFeromonio[i] * (1 - RHO);
     }
 }
+
+static inline void smoothingDeFeromonios(unique_ptr<double[]>& vetorFeromonio, size_t m, double lambda) {
+    double maxValor = *std::max_element(vetorFeromonio.get(), vetorFeromonio.get() + m);
+    double minValor = *std::min_element(vetorFeromonio.get(), vetorFeromonio.get() + m);
+    double smoothing = (maxValor - minValor) * lambda;
+
+    for (size_t i = 0; i < m; ++i) {
+        vetorFeromonio[i] = vetorFeromonio[i] + smoothing;
+    }
+}
+
+static inline void smoothingDeHeuristicas(unique_ptr<double[]>& vetorHeuristico, size_t m, double zeta) {
+
+    double maxValorHeur = *std::max_element(vetorHeuristico.get(), vetorHeuristico.get() + m);
+    double minValorHeur = *std::min_element(vetorHeuristico.get(), vetorHeuristico.get() + m);
+    double smoothing2 = (maxValorHeur - minValorHeur) * zeta;
+
+    for (size_t i = 0; i < m; ++i) {
+        vetorHeuristico[i] = vetorHeuristico[i] + smoothing2;
+    }
+}
+
+
 static inline void atualizarProbabilidadesACO(std::vector<lcp>& LCP, unique_ptr<double[]>& vetorFeromonio,
 unique_ptr<double[]>& vetorHeuristico, size_t m)
 {
@@ -443,28 +467,22 @@ unique_ptr<double[]>& vetorHeuristico, size_t m)
 }
 static size_t selecionaRotulo(std::vector<lcp> LCP, size_t tamAtual)
 {
-    //Ajustezinhos no RNG pode melhorar o resultado
-    double rng = 0.01 + (double)(std::rand() % 90) / 1000;
-    //double rng = (double) (rand() % 10000) / 10000;
+    std::mt19937 rng(std::random_device{}());
+
+    double rngGenerated = 0.01 + (double) (rng() % 2900) / 10000;
 
     double aux = 0;
     LCP.resize(tamAtual);
     std::sort(LCP.begin(),LCP.end(), [](const lcp &x, const lcp &y){ return (x.prob > y.prob);});
 
-    // //----Imprime LCP Ordenado----//
-    // std::cerr << "Sorted: " << std::endl;
-    // for (size_t r = 0; r < tamAtual; ++r) {
-    //     std::cerr << " - " << LCP.at(r).cand << "|" << LCP.at(r).prob;
-    // }
-    // std::cerr << std::endl;
-
     for (size_t i = 0; i < tamAtual; i++) {
         aux += LCP.at(i).prob;
-        if (rng <= aux) {
+        if (rngGenerated <= aux) {
             return LCP.at(i).cand;
         }
     }
     return LCP.at(tamAtual-1).cand;
+    // return LCP.at(rngGenerated).cand;
 }
 
 
@@ -488,18 +506,8 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
         subArvore[v.id()] = v.id();
     }
 
-    // debug removidos
-    // size_t removidos = 0;
-    // std::vector<rotulo_t> rotulosRemovidos;
-
     size_t subs = this->numeroDeVertices();
     while (subs > 1 && !LCP.empty()) {
-
-        // //----Imprime LCP----//
-        // for (size_t r = 0; r < LCP.size(); ++r) {
-        //     std::cerr << "LCP: " << LCP.at(r).cand << "|" << LCP.at(r).prob;
-        // }
-        // std::cerr << std::endl;
 
         if(F.numeroDeRotulos() >= minRotulos){
             //std::cerr << "Excedeu" << std::endl;
@@ -526,25 +534,19 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
             }
         }
 
-        // debug removidos
-        // rotulosRemovidos.push_back(r);
-
         auto it = std::find_if(LCP.begin(), LCP.end(), [r](const lcp& element) {
             return element.cand == r;
         });
         size_t idx = std::distance(LCP.begin(), it);
         LCP.erase(LCP.begin() + idx);
 
-        // debug removidos
-        // removidos++;
     }
 
     return F;
 }
 
 
-
-Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double tau_min, double tau_max) const
+Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double zeta_max, double tau_min, double tau_max) const
 {
 #define PESO(r) (-this->rotulos.find(r)->second.size())
 #define CICLOSMAX 0.1*nFormigas
@@ -568,19 +570,12 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
         numeroArestasDoRotulo = 0;
     }
 
-    //   //  ----Imprime vetor Heurístico----
-    //     std::cerr << "Vetor Heuristico: ";
-    //     for (size_t i = 0; i < nRotulos; i++) {
-    //         std::cerr << vetorHeuristico[i] << ' ';
-    //     }
-    //     std::cerr << "------------------" << std::endl;
-
     bool isPrimeiraVez = true;
     size_t it;
     size_t formigasSemMelhora = 0;
     size_t iteracoesSemMelhora = 0;
-    size_t lambda = 0;
-
+    double lambda = 0;
+    double zeta = 0;
     size_t menorNRotulos = nRotulos;
     std::vector<rotulo_t> rotulosDaMelhorSol;
 
@@ -594,7 +589,7 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
         for(size_t fg = 1; fg <= nFormigas; ++fg){
 
             solAux = this->algoritmoACOHelper(vetorProb, vetorFeromonio, vetorHeuristico, nRotulos, menorNRotulos);
-            //std::cout << "Melhor " << melhorSol.numeroDeRotulos() << " | " <<  "Iteração " << it << " | "  << "Formiga " << fg << " | " <<  solAux.numeroDeRotulos() << " |" << std::endl;
+            //std::cout << "Iteração " << it << " | "  << "Formiga " << fg << " | " <<  solAux.numeroDeRotulos() << " |" << std::endl;
 
             if (isPrimeiraVez || solAux.numeroDeRotulos() < melhorSol.numeroDeRotulos()) {
                 isPrimeiraVez = false;
@@ -623,67 +618,58 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
             }
 
             if(formigasSemMelhora >= CICLOSMAX){
-                //std::cout << "Sem Melhora - Lista vertices tentados na sol" << std::endl;
+
+                // std::cout << "Sem Melhora - Lista vertices tentados na sol" << std::endl;
                 // for (auto i : solAux.rotulos){
 		        //     std::cout << i.first << " ";
                 // }
+                // std::cout << std::endl;
+
                 if(formigasSemMelhora >= 1.1*CICLOSMAX){
-                    //Busca Local (Opcional)
+                    //Busca Local
                     fg = nFormigas;
                 }
-                //std::cout << std::endl;
             }
 
         }
+        formigasSemMelhora = 0;
 
         if (itSemMelhora)
             iteracoesSemMelhora++;
         else
             iteracoesSemMelhora = 0;
 
-        formigasSemMelhora = 0;
-
         //Atualização do Feromônio
         atualizarFeromonios(vetorFeromonio, nRotulos, rotulosDaMelhorSol);
 
-        // if (it % bloco == 0) {
         if (iteracoesSemMelhora >= bloco){
-            //std::cout << "Hello Thais" << std::endl;
-            //Smoothing (Opcional)
             if (iteracoesSemMelhora < bloco * 2){
+
                 // if (lambda < lambda_max){
                 lambda += lambda_max / bloco;
                 // }
-                //std::cerr << "Hello Thais, não melhora há " << iteracoesSemMelhora << " anos" << std::endl;
-                double maxValor = *std::max_element(vetorFeromonio.get(), vetorFeromonio.get() + nRotulos);
-                double minValor = *std::min_element(vetorFeromonio.get(), vetorFeromonio.get() + nRotulos);
+                smoothingDeFeromonios(vetorFeromonio, nRotulos, lambda);
 
-                double smoothing = (maxValor - minValor) * lambda;
-
-                for (size_t i = 0; i < nRotulos; ++i) {
-                    vetorFeromonio[i] = vetorFeromonio[i] + smoothing;
-                }
+                std::cerr << "Hello Thais, LAMBDA atual: " << lambda << std::endl;
             }
-
             else {
-                // if (iteracoesSemMelhora == bloco * 2){
+
                 inicializarFeromonios(vetorFeromonio, nRotulos, tau_min, tau_max);
                 iteracoesSemMelhora = 0;
                 lambda = 0;
-                // }
+                zeta += zeta_max / (2*bloco);
+                smoothingDeHeuristicas(vetorHeuristico, nRotulos, zeta);
+
+                std::cerr << "Hello Thais, ZETA atual: " << zeta << std::endl;
+                std::cerr << "Hello Thais, bora começar de novo ?" << std::endl;
             }
-            //std::cerr << "Hello Thais, a iteração atual e " << it << " anos" << std::endl;
         }
-
-        //Atualiza Melhor Solução (pós smoothing)
-        // if (isPrimeiraVez || solAux.numeroDeRotulos() < melhorSol.numeroDeRotulos()) {
-        //     isPrimeiraVez = false;
-        //     melhorSol = std::move(solAux);
-        // }
-
+        std::cerr << "Hello Thais, se passaram " << it << " anos" << std::endl;
+        std::cerr << "------------------------------------------" << std::endl;
+        std::cerr << std::endl;
     }
 
-    // std::cout << "Hello Thais" << std::endl;
+    std::cout << "Hello Thais, acabamo a execução" << std::endl;
 
     return melhorSol;
 }
