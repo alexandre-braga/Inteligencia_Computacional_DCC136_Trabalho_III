@@ -429,7 +429,7 @@ static inline void smoothingDeHeuristicas(unique_ptr<double[]>& vetorHeuristico,
     double smoothing2 = (maxValorHeur - minValorHeur) * zeta;
 
     for (size_t i = 0; i < m; ++i) {
-        vetorHeuristico[i] = vetorHeuristico[i] + smoothing2;
+        vetorHeuristico[i] += vetorHeuristico[i] + smoothing2;
     }
 }
 
@@ -519,6 +519,14 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
 
         size_t aux = LCP.size();
 
+        // if(aux == m){
+        //     std::cerr << "Final Probs: " << std::endl;
+        //     for (size_t i = 0; i < LCP.size(); i++) {
+        //         std::cerr << LCP.at(i).prob << " ";
+        //     }
+        //     std::cerr << std::endl;
+        // }
+
         //Decide o Rótulo a ser inserido
         rotulo_t r = (aux < 2) ? 0 : selecionaRotulo(LCP, aux);
 
@@ -542,11 +550,12 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
 
     }
 
+
     return F;
 }
 
 
-Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double zeta_max, double tau_min, double tau_max) const
+Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double zeta_max, double tau_min, double tau_max) const
 {
 #define PESO(r) (-this->rotulos.find(r)->second.size())
 #define CICLOSMAX 0.1*nFormigas
@@ -582,9 +591,14 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
     //Constroi a solução ao longo das Iterações
     for (it = 0; it <= nIteracoes; ++it) {
         bool itSemMelhora = true;
+
         //Inicializa as Probabilidades
         unique_ptr<double[]> vetorProb(new double[nRotulos]);
-        inicializarProbabilidadesACO(vetorProb, vetorHeuristico, numeroTotalArestas, nRotulos);
+        size_t proporcaoZeta = 0;
+        for (rotulo_t r = 0; r < nRotulos; ++r) {
+            proporcaoZeta += vetorHeuristico[r];
+        }
+        inicializarProbabilidadesACO(vetorProb, vetorHeuristico, proporcaoZeta, nRotulos);
 
         for(size_t fg = 1; fg <= nFormigas; ++fg){
 
@@ -649,18 +663,18 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
                 lambda += lambda_max / bloco;
                 // }
                 smoothingDeFeromonios(vetorFeromonio, nRotulos, lambda);
+                smoothingDeHeuristicas(vetorHeuristico, nRotulos, zeta);
 
                 std::cerr << "Hello Thais, LAMBDA atual: " << lambda << std::endl;
+                std::cerr << "Hello Thais, ZETA atual: " << zeta << std::endl;
             }
             else {
 
                 inicializarFeromonios(vetorFeromonio, nRotulos, tau_min, tau_max);
                 iteracoesSemMelhora = 0;
                 lambda = 0;
-                zeta += zeta_max / (2*bloco);
-                smoothingDeHeuristicas(vetorHeuristico, nRotulos, zeta);
+                zeta += zeta_max / bloco;
 
-                std::cerr << "Hello Thais, ZETA atual: " << zeta << std::endl;
                 std::cerr << "Hello Thais, bora começar de novo ?" << std::endl;
             }
         }
@@ -670,6 +684,69 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, size_t bloco, dou
     }
 
     std::cout << "Hello Thais, acabamo a execução" << std::endl;
+
+    return melhorSol;
+}
+
+Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const
+{
+#define PESO(r) (-this->rotulos.find(r)->second.size())
+#define CICLOSMAX 0.1*nFormigas
+
+    size_t nRotulos = this->numeroDeRotulos();
+    Grafo melhorSol(this->numeroDeVertices(), this->numeroDeRotulos());
+    Grafo solAux(this->numeroDeVertices(), 0);
+
+    //Inicializa o Ferômonio
+    unique_ptr<double[]> vetorFeromonio(new double[nRotulos]);
+    inicializarFeromonios(vetorFeromonio, nRotulos, tau_min, tau_max);
+
+    //Armazena o Peso Heuristico
+    size_t numeroArestasDoRotulo = 0;
+    size_t numeroTotalArestas = 0;
+    unique_ptr<double[]> vetorHeuristico(new double[nRotulos]);
+    for (rotulo_t r = 0; r < nRotulos; ++r) {
+        numeroArestasDoRotulo = this->rotulos.find(r)->second.size();
+        vetorHeuristico[r] = numeroArestasDoRotulo;
+        numeroTotalArestas += numeroArestasDoRotulo;
+        numeroArestasDoRotulo = 0;
+    }
+
+    bool isPrimeiraVez = true;
+    size_t it;
+    size_t menorNRotulos = nRotulos;
+    std::vector<rotulo_t> rotulosDaMelhorSol;
+    size_t formigasSemMelhora = 0;
+
+    //Constroi a solução ao longo das Iterações
+    for (it = 0; it <= nIteracoes; ++it) {
+
+        //Inicializa as Probabilidades
+        unique_ptr<double[]> vetorProb(new double[nRotulos]);
+        inicializarProbabilidadesACO(vetorProb, vetorHeuristico, numeroTotalArestas, nRotulos);
+
+        for(size_t fg = 1; fg <= nFormigas; ++fg){
+
+            solAux = this->algoritmoACOHelper(vetorProb, vetorFeromonio, vetorHeuristico, nRotulos, menorNRotulos);
+
+            if (isPrimeiraVez || solAux.numeroDeRotulos() < melhorSol.numeroDeRotulos()) {
+                isPrimeiraVez = false;
+                melhorSol = std::move(solAux);
+                menorNRotulos = melhorSol.numeroDeRotulos();
+            }
+            else{
+                formigasSemMelhora++;
+            }
+            if(formigasSemMelhora >= CICLOSMAX){
+                fg = nFormigas;
+            }
+
+        }
+        formigasSemMelhora = 0;
+
+        atualizarFeromonios(vetorFeromonio, nRotulos, rotulosDaMelhorSol);
+
+    }
 
     return melhorSol;
 }
