@@ -553,7 +553,7 @@ unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos) const
 Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double zeta_max, double tau_min, double tau_max) const
 {
 #define PESO(r) (-this->rotulos.find(r)->second.size())
-#define CICLOSMAX 0.1*nFormigas
+#define FORMIGASMAX 0.1*nFormigas
 
     size_t nRotulos = this->numeroDeRotulos();
     Grafo melhorSol(this->numeroDeVertices(), this->numeroDeRotulos());
@@ -609,13 +609,13 @@ Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t b
                 // std::cout << "----- Nova Solução encontrada ! ------" << std::endl;
                 // std::cout << "Melhor " << melhorSol.numeroDeRotulos() << " | " <<  "Iteração " << it << " | "  << "Formiga " << fg << " |" << std::endl;
 
-                // size_t posicao;
-                // rotulosDaMelhorSol.clear();
-                // for (auto i : melhorSol.rotulos){
-		        //     std::cout << i.first << " ";
-                //     rotulosDaMelhorSol.push_back(i.first);
-                //     posicao++;
-                // }
+                size_t posicao;
+                rotulosDaMelhorSol.clear();
+                for (auto i : melhorSol.rotulos){
+		            // std::cout << i.first << " ";
+                    rotulosDaMelhorSol.push_back(i.first);
+                    posicao++;
+                }
                 // std::cout << "--------------------------------------" << std::endl;
                 // std::cout << std::endl;
 
@@ -626,7 +626,7 @@ Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t b
                 formigasSemMelhora++;
             }
 
-            if(formigasSemMelhora >= CICLOSMAX){
+            if(formigasSemMelhora >= FORMIGASMAX){
 
                 // std::cout << "Sem Melhora - Lista vertices tentados na sol" << std::endl;
                 // for (auto i : solAux.rotulos){
@@ -635,7 +635,7 @@ Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t b
                 // std::cout << std::endl;
 
                 //Busca Local
-                if(formigasSemMelhora >= 1.1*CICLOSMAX){
+                if(formigasSemMelhora >= 1.1*FORMIGASMAX){
                     fg = nFormigas;
                 }
             }
@@ -686,7 +686,7 @@ Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t b
 Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const
 {
 #define PESO(r) (-this->rotulos.find(r)->second.size())
-#define CICLOSMAX 0.1*nFormigas
+#define FORMIGASMAX 0.1*nFormigas
 
     size_t nRotulos = this->numeroDeRotulos();
     Grafo melhorSol(this->numeroDeVertices(), this->numeroDeRotulos());
@@ -728,11 +728,19 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, double tau_min, d
                 isPrimeiraVez = false;
                 melhorSol = std::move(solAux);
                 menorNRotulos = melhorSol.numeroDeRotulos();
+
+                size_t posicao;
+                rotulosDaMelhorSol.clear();
+                for (auto i : melhorSol.rotulos){
+		            rotulosDaMelhorSol.push_back(i.first);
+                    posicao++;
+                }
+
             }
             else{
                 formigasSemMelhora++;
             }
-            if(formigasSemMelhora >= CICLOSMAX){
+            if(formigasSemMelhora >= FORMIGASMAX){
                 fg = nFormigas;
             }
 
@@ -746,6 +754,83 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, double tau_min, d
     return melhorSol;
 }
 
+Grafo Grafo::algoritmoACOV2(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const
+{
+#define PESO(r) (-this->rotulos.find(r)->second.size())
+#define FORMIGASMAX 0.1*nFormigas
+
+    size_t nRotulos = this->numeroDeRotulos();
+    Grafo melhorSol(this->numeroDeVertices(), this->numeroDeRotulos());
+    Grafo solAux(this->numeroDeVertices(), 0);
+
+    //Inicializa o Ferômonio
+    unique_ptr<double[]> vetorFeromonio(new double[nRotulos]);
+    inicializarFeromonios(vetorFeromonio, nRotulos, tau_min, tau_max);
+
+    //Armazena o Peso Heuristico
+    size_t numeroArestasDoRotulo = 0;
+    size_t numeroTotalArestas = 0;
+    unique_ptr<double[]> vetorHeuristico(new double[nRotulos]);
+    for (rotulo_t r = 0; r < nRotulos; ++r) {
+        numeroArestasDoRotulo = this->rotulos.find(r)->second.size();
+        vetorHeuristico[r] = numeroArestasDoRotulo;
+        numeroTotalArestas += numeroArestasDoRotulo;
+        numeroArestasDoRotulo = 0;
+    }
+
+    bool isPrimeiraVez = true;
+    size_t it;
+    size_t menorNRotulos = nRotulos;
+    std::vector<rotulo_t> rotulosDaMelhorFormiga;
+    size_t formigasSemMelhora = 0;
+
+    //Constroi a solução ao longo das Iterações
+    for (it = 0; it <= nIteracoes; ++it) {
+
+        //Inicializa as Probabilidades
+        unique_ptr<double[]> vetorProb(new double[nRotulos]);
+        inicializarProbabilidadesACO(vetorProb, vetorHeuristico, numeroTotalArestas, nRotulos);
+
+        bool isPrimeiraFormiga = true;
+        Grafo melhorFormiga(this->numeroDeVertices(), this->numeroDeRotulos());
+        size_t menorNRotulosFormigas = nRotulos;
+
+        for(size_t fg = 1; fg <= nFormigas; ++fg){
+
+            solAux = this->algoritmoACOHelper(vetorProb, vetorFeromonio, vetorHeuristico, nRotulos, menorNRotulosFormigas);
+
+            if (isPrimeiraFormiga || solAux.numeroDeRotulos() < melhorFormiga.numeroDeRotulos()) {
+                isPrimeiraFormiga = false;
+                melhorFormiga = std::move(solAux);
+                menorNRotulosFormigas = melhorFormiga.numeroDeRotulos();
+                size_t posicao;
+                rotulosDaMelhorFormiga.clear();
+                for (auto i : melhorSol.rotulos){
+                    rotulosDaMelhorFormiga.push_back(i.first);
+                    posicao++;
+                }
+            }
+            else{
+                formigasSemMelhora++;
+            }
+            if(formigasSemMelhora >= FORMIGASMAX){
+                fg = nFormigas;
+            }
+
+        }
+        formigasSemMelhora = 0;
+        atualizarFeromonios(vetorFeromonio, nRotulos, rotulosDaMelhorFormiga);
+
+        if (isPrimeiraVez || melhorFormiga.numeroDeRotulos() < melhorSol.numeroDeRotulos()) {
+            isPrimeiraVez = false;
+            melhorSol = std::move(melhorFormiga);
+            menorNRotulos = melhorSol.numeroDeRotulos();
+        }
+
+    }
+
+    return melhorSol;
+}
 
 /*-------------------------------------------------------------*/
 /*----------------------- Busca Local -------------------------*/
@@ -1079,7 +1164,7 @@ Grafo Grafo::algoritmoACOHelperBL(unique_ptr<double[]>& vetorFeromonio, unique_p
 Grafo Grafo::algoritmoACOBuscaLocal(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const
 {
 #define PESO(r) (-this->rotulos.find(r)->second.size())
-#define CICLOSMAX 0.1*nFormigas
+#define FORMIGASMAX 0.1*nFormigas
 
     size_t nRotulos = this->numeroDeRotulos();
     Grafo melhorSol(this->numeroDeVertices(), this->numeroDeRotulos());
@@ -1148,7 +1233,7 @@ Grafo Grafo::algoritmoACOBuscaLocal(size_t nIteracoes, size_t nFormigas, double 
             else{
                 formigasSemMelhora++;
             }
-            if(formigasSemMelhora >= CICLOSMAX){
+            if(formigasSemMelhora >= FORMIGASMAX){
                 std::cout << "\nVish, vamo tentar busca local agr alexandre " << std::endl;
                 solBL = this->VNS(solAux, subArvore, ListaRestante);
                 if (solBL.numeroDeRotulos() < melhorSol.numeroDeRotulos()){

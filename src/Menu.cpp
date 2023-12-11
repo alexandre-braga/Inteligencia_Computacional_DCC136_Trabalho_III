@@ -65,6 +65,12 @@ static void coloniaFormigas(const Grafo& g, std::ofstream& out)
     BOILER_PLATE(g.algoritmoACO(400, 400, 0.001, 10), chrono::milliseconds, "ms", 1, {});
 }
 
+static void coloniaFormigasV2(const Grafo& g, std::ofstream& out)
+{
+    //usage (it, fg, bloco, lambda_max, zeta_max, tau_min, tau_max)
+    BOILER_PLATE(g.algoritmoACOV2(400, 400, 0.001, 10), chrono::milliseconds, "ms", 10, {});
+}
+
 static void coloniaFormigasSmoothing(const Grafo& g, std::ofstream& out)
 {
     //usage (it, fg, bloco, lambda_max, zeta_max, tau_min, tau_max)
@@ -90,6 +96,7 @@ static struct MenuOption {
     { "Algoritmo guloso randomizado"                  , gulosoRandomizado        },
     { "Algoritmo guloso randomizado reativo"          , gulosoRandomizadoReativo },
     { "Algoritmo Colônia de Formigas"                 , coloniaFormigas          },
+    { "Algoritmo Colônia de Formigas V2"              , coloniaFormigasV2        },
     { "Algoritmo Colônia de Formigas com Smoothing"   , coloniaFormigasSmoothing },
     { "Algoritmo Colônia de Formigas com Busca Local" , coloniaFormigasBuscaLocal},
     { "To Dots"                                       , toDots                   }

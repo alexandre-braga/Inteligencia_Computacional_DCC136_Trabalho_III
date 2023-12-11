@@ -56,6 +56,7 @@ class Grafo {
                 const std::vector<double>& alfas, size_t nIteracoes,
                 size_t tamanhoBloco, double *alfaMaiorProb = nullptr) const;
         Grafo algoritmoACO(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const;
+        Grafo algoritmoACOV2(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const;
         Grafo algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double zeta_max, double tau_min, double tau_max) const;
         Grafo algoritmoACOBuscaLocal(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const;
 
