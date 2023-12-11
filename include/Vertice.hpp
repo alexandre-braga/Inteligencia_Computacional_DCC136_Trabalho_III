@@ -18,6 +18,7 @@ class Vertice {
         const std::list<Aresta>& listaDeAdjacencia() const;
 
         void addAdjacente(idvertice_t id, rotulo_t rotulo);
+        void removeAdjacente(idvertice_t id, rotulo_t rotulo);
 };
 
 #endif // VERTICE_HPP

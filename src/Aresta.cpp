@@ -15,3 +15,7 @@ idvertice_t Aresta::idDestino() const
 {
     return this->_idDestino;
 }
+
+bool Aresta::operator==(const Aresta& other) const {
+    return (_idDestino == other._idDestino) && (_rotulo == other._rotulo);
+}

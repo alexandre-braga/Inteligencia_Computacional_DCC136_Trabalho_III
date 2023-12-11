@@ -62,13 +62,19 @@ static void gulosoRandomizadoReativo(const Grafo& g, std::ofstream& out)
 static void coloniaFormigas(const Grafo& g, std::ofstream& out)
 {
     //usage (it, fg, bloco, lambda_max, zeta_max, tau_min, tau_max)
-    BOILER_PLATE(g.algoritmoACO(400, 400, 0.001, 10), chrono::milliseconds, "ms", 10, {});
+    BOILER_PLATE(g.algoritmoACO(400, 400, 0.001, 10), chrono::milliseconds, "ms", 1, {});
 }
 
 static void coloniaFormigasSmoothing(const Grafo& g, std::ofstream& out)
 {
     //usage (it, fg, bloco, lambda_max, zeta_max, tau_min, tau_max)
     BOILER_PLATE(g.algoritmoACOSmoothing(400, 400, 20, 0.2, 0.1, 0.001, 10), chrono::milliseconds, "ms", 10, {});
+}
+
+static void coloniaFormigasBuscaLocal(const Grafo& g, std::ofstream& out)
+{
+    //usage (it, fg, bloco, lambda_max, zeta_max, tau_min, tau_max)
+    BOILER_PLATE(g.algoritmoACOBuscaLocal(400, 400, 0.001, 10), chrono::milliseconds, "ms", 5, {});
 }
 
 static void toDots(const Grafo& g, std::ofstream& out)
@@ -80,12 +86,13 @@ static struct MenuOption {
     const char *optName;
     void (*action)(const Grafo& g, std::ofstream&);
 } menuOpts[] = {
-    { "Algoritmo guloso"                            , guloso                   },
-    { "Algoritmo guloso randomizado"                , gulosoRandomizado        },
-    { "Algoritmo guloso randomizado reativo"        , gulosoRandomizadoReativo },
-    { "Algoritmo Colônia de Formigas"               , coloniaFormigas          },
-    { "Algoritmo Colônia de Formigas com Smoothing" , coloniaFormigasSmoothing },
-    { "To Dots"                                     , toDots                   }
+    { "Algoritmo guloso"                              , guloso                   },
+    { "Algoritmo guloso randomizado"                  , gulosoRandomizado        },
+    { "Algoritmo guloso randomizado reativo"          , gulosoRandomizadoReativo },
+    { "Algoritmo Colônia de Formigas"                 , coloniaFormigas          },
+    { "Algoritmo Colônia de Formigas com Smoothing"   , coloniaFormigasSmoothing },
+    { "Algoritmo Colônia de Formigas com Busca Local" , coloniaFormigasBuscaLocal},
+    { "To Dots"                                       , toDots                   }
 };
 
 #define OPTS_SIZE (sizeof(menuOpts) / sizeof(MenuOption))

@@ -365,11 +365,6 @@ Grafo Grafo::algoritmoGulosoRandomizadoReativo(const vector<double>& alfas,
 /*-------------------------------------------------------------*/
 /*--------------------------- ACO -----------------------------*/
 /*-------------------------------------------------------------*/
-struct lcp
-{
-    rotulo_t cand;
-    double prob;
-};
 struct TeN
 {
     rotulo_t id;
@@ -434,7 +429,7 @@ static inline void smoothingDeHeuristicas(unique_ptr<double[]>& vetorHeuristico,
 }
 
 
-static inline void atualizarProbabilidadesACO(std::vector<lcp>& LCP, unique_ptr<double[]>& vetorFeromonio,
+static inline void atualizarProbabilidadesACO(std::vector<Grafo::lcp>& LCP, unique_ptr<double[]>& vetorFeromonio,
 unique_ptr<double[]>& vetorHeuristico, size_t m)
 {
 #define PESO(r) (-this->rotulos.find(r)->second.size())
@@ -465,7 +460,7 @@ unique_ptr<double[]>& vetorHeuristico, size_t m)
         }
     }
 }
-static size_t selecionaRotulo(std::vector<lcp> LCP, size_t tamAtual)
+static size_t selecionaRotulo(std::vector<Grafo::lcp> LCP, size_t tamAtual)
 {
     std::mt19937 rng(std::random_device{}());
 
@@ -473,7 +468,7 @@ static size_t selecionaRotulo(std::vector<lcp> LCP, size_t tamAtual)
 
     double aux = 0;
     LCP.resize(tamAtual);
-    std::sort(LCP.begin(),LCP.end(), [](const lcp &x, const lcp &y){ return (x.prob > y.prob);});
+    std::sort(LCP.begin(),LCP.end(), [](const Grafo::lcp &x, const Grafo::lcp &y){ return (x.prob > y.prob);});
 
     for (size_t i = 0; i < tamAtual; i++) {
         aux += LCP.at(i).prob;
@@ -611,18 +606,18 @@ Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t b
                 menorNRotulos = melhorSol.numeroDeRotulos();
                 formigasSemMelhora = 0;
 
-                std::cout << "----- Nova Solução encontrada ! ------" << std::endl;
-                std::cout << "Melhor " << melhorSol.numeroDeRotulos() << " | " <<  "Iteração " << it << " | "  << "Formiga " << fg << " |" << std::endl;
+                // std::cout << "----- Nova Solução encontrada ! ------" << std::endl;
+                // std::cout << "Melhor " << melhorSol.numeroDeRotulos() << " | " <<  "Iteração " << it << " | "  << "Formiga " << fg << " |" << std::endl;
 
-                size_t posicao;
-                rotulosDaMelhorSol.clear();
-                for (auto i : melhorSol.rotulos){
-		            std::cout << i.first << " ";
-                    rotulosDaMelhorSol.push_back(i.first);
-                    posicao++;
-                }
-                std::cout << "--------------------------------------" << std::endl;
-                std::cout << std::endl;
+                // size_t posicao;
+                // rotulosDaMelhorSol.clear();
+                // for (auto i : melhorSol.rotulos){
+		        //     std::cout << i.first << " ";
+                //     rotulosDaMelhorSol.push_back(i.first);
+                //     posicao++;
+                // }
+                // std::cout << "--------------------------------------" << std::endl;
+                // std::cout << std::endl;
 
                 if (itSemMelhora)
                     itSemMelhora = false;
@@ -639,8 +634,8 @@ Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t b
                 // }
                 // std::cout << std::endl;
 
+                //Busca Local
                 if(formigasSemMelhora >= 1.1*CICLOSMAX){
-                    //Busca Local
                     fg = nFormigas;
                 }
             }
@@ -665,8 +660,8 @@ Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t b
                 smoothingDeFeromonios(vetorFeromonio, nRotulos, lambda);
                 smoothingDeHeuristicas(vetorHeuristico, nRotulos, zeta);
 
-                std::cerr << "Hello Thais, LAMBDA atual: " << lambda << std::endl;
-                std::cerr << "Hello Thais, ZETA atual: " << zeta << std::endl;
+                // std::cerr << "Hello Thais, LAMBDA atual: " << lambda << std::endl;
+                // std::cerr << "Hello Thais, ZETA atual: " << zeta << std::endl;
             }
             else {
 
@@ -675,15 +670,15 @@ Grafo Grafo::algoritmoACOSmoothing(size_t nIteracoes, size_t nFormigas, size_t b
                 lambda = 0;
                 zeta += zeta_max / bloco;
 
-                std::cerr << "Hello Thais, bora começar de novo ?" << std::endl;
+                // std::cerr << "Hello Thais, bora começar de novo ?" << std::endl;
             }
         }
-        std::cerr << "Hello Thais, se passaram " << it << " anos" << std::endl;
-        std::cerr << "------------------------------------------" << std::endl;
-        std::cerr << std::endl;
+        // std::cerr << "Hello Thais, se passaram " << it << " anos" << std::endl;
+        // std::cerr << "------------------------------------------" << std::endl;
+        // std::cerr << std::endl;
     }
 
-    std::cout << "Hello Thais, acabamo a execução" << std::endl;
+    // std::cout << "Hello Thais, acabamo a execução" << std::endl;
 
     return melhorSol;
 }
@@ -738,6 +733,428 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, double tau_min, d
                 formigasSemMelhora++;
             }
             if(formigasSemMelhora >= CICLOSMAX){
+                fg = nFormigas;
+            }
+
+        }
+        formigasSemMelhora = 0;
+
+        atualizarFeromonios(vetorFeromonio, nRotulos, rotulosDaMelhorSol);
+
+    }
+
+    return melhorSol;
+}
+
+
+/*-------------------------------------------------------------*/
+/*----------------------- Busca Local -------------------------*/
+/*-------------------------------------------------------------*/
+
+// Remoção aleatória de n rótulos da solução
+// Inserção de m <= n rótulos que maximizam o número de componentes conexas
+// V1: Vizinhança gerada pela remoção de 1 rótulo
+// V2: Vizinhança gerada pela remoção de 2 rótulos
+// V3: Vizinhança gerada pela remoção de 3 rótulos
+
+static void separarSubArvores(idvertice_t subArvore[], idvertice_t u, idvertice_t v)
+{
+    subArvore[u] = u;
+    subArvore[v] = v;
+}
+
+void Grafo::desfazerAresta(idvertice_t id1, idvertice_t id2, rotulo_t rotulo)
+{
+#define TEST_VERTICE(v, id)                                                    \
+    do {                                                                       \
+        if ((v) == nullptr) {                                                  \
+            throw std::invalid_argument(                                       \
+                    std::string("não foi possível encontrar grafo com id ") += \
+                    (id));                                                     \
+        }                                                                      \
+    } while (0)
+
+    if (id1 != id2) {
+        Vertice *v1 = this->getVerticeById(id1);
+        Vertice *v2 = this->getVerticeById(id2);
+
+        TEST_VERTICE(v1, id1);
+        TEST_VERTICE(v2, id2);
+
+        v1->removeAdjacente(id2, rotulo);
+        v2->removeAdjacente(id1, rotulo);
+    } else {
+        Vertice *v = this->getVerticeById(id1);
+
+        TEST_VERTICE(v, id1);
+        v->removeAdjacente(id1, rotulo);
+    }
+}
+
+Grafo Grafo::removeKRotulos(Grafo s, size_t k, unique_ptr<idvertice_t[]>& subArvore, std::vector<rotulo_t>& listCand) const{
+    Grafo s1(this->numeroDeVertices(), 0);
+    s1 = s;
+
+    std::vector<rotulo_t> rotulosS;
+    std::vector<rotulo_t> rotulosSRemovidos;
+
+    for (auto i : s1.rotulos){
+        rotulosS.push_back(i.first);
+    }
+
+    size_t i = 0;
+    while (i < k) {
+        rotulo_t indiceRotuloSorteado = std::rand() % rotulosS.size();
+        auto it = std::find(rotulosSRemovidos.begin(), rotulosSRemovidos.end(), rotulosS.at(indiceRotuloSorteado));
+        if (it == rotulosSRemovidos.end()){
+            i += 1;
+            for (const ArestaAux& a : s1.rotulos.find(rotulosS.at(indiceRotuloSorteado))->second) {
+                s1.desfazerAresta(a.idOrigem, a.idDestino, rotulosS.at(indiceRotuloSorteado));
+                separarSubArvores(subArvore.get(), a.idOrigem, a.idDestino);
+            }
+            auto itRotulo = s1.rotulos.find(rotulosS.at(indiceRotuloSorteado));
+            listCand.push_back(rotulosS.at(indiceRotuloSorteado));
+            s1.rotulos.erase(itRotulo);
+        }
+    }
+
+    return s1;
+}
+
+Grafo Grafo::reparaSolucao(Grafo s1, std::unique_ptr<idvertice_t[]>& subArvore, std::vector<rotulo_t>& listCand, size_t k) const{
+
+    Grafo sAux(this->numeroDeVertices(), 0);
+    sAux = s1;
+
+    std::vector<idvertice_t> subArvoresDif;
+    size_t numSubArvores = 0;
+
+    for (idvertice_t id = 0; id < this->numeroDeVertices(); ++id) {
+        auto idAux = std::find(subArvoresDif.begin(), subArvoresDif.end(), subArvore[id]);
+        if (idAux == subArvoresDif.end()) {
+            subArvoresDif.push_back(subArvore[id]);
+            numSubArvores += 1;
+        }
+    }
+
+    size_t idx;
+    size_t tamListCand;
+    float qualidade = 1;
+    size_t itSemMelhora = 0;
+    bool CONTINUE = true;
+
+    while (numSubArvores > 1 && !listCand.empty() && CONTINUE) {
+        idx = 0;
+        tamListCand = listCand.size();
+
+        std::cout << " oi " << idx << " " << tamListCand << std::endl;
+
+        while (idx < tamListCand){
+
+            std::cout << " hello " << idx << " " << tamListCand << std::endl;
+
+            size_t numSAaux = numSubArvores;
+            std::vector<idvertice_t> vert;
+            rotulo_t r = listCand[idx];
+
+            // std::cout << "lsatual " << idx << " " << r << std::endl;
+
+            for (const ArestaAux& a : this->rotulos.find(r)->second) {
+                // std::cout << "vai entrar?" << std::endl;
+                // std::cout << a.idOrigem << " " << a.idDestino << std::endl;
+                if (a.idOrigem != a.idDestino && !estaoNaMesmaSubArvore(subArvore.get(), a.idOrigem, a.idDestino)) {
+                    // std::cout << a.idOrigem << " " << a.idDestino << std::endl;
+                    auto id1 = std::find(vert.begin(), vert.end(), a.idOrigem);
+                    auto id2 = std::find(vert.begin(), vert.end(), a.idDestino);
+
+                    // std::cout << "vert " << std::endl;
+                    // for (auto l = vert.begin(); l != vert.end(); l++){
+                    //     std::cout << *l << " ";
+                    // }
+
+                    bool id1Entra = false;
+                    bool id2Entra = false;
+
+                    if (id1 == vert.end()){
+                        id1Entra = true;
+                    }
+
+                    if (id2 == vert.end()){
+                        id2Entra = true;
+                    }
+
+                    if (id1Entra || id2Entra){
+                        numSAaux -= 1;
+                    }
+
+                    if (id1Entra){
+                        vert.push_back(a.idOrigem);
+                    }
+
+                    if (id2Entra){
+                        vert.push_back(a.idDestino);
+                    }
+                }
+            }
+
+            // std::cout << "Vert" << std::endl;
+            // for (auto l = vert.begin(); l != vert.end(); l++){
+            //     std::cout << *l << " ";
+            // }
+
+            // std::cout << numSubArvores << " - " << numSAaux << " - " << k << std::endl;
+
+            if (numSAaux <= numSubArvores * qualidade){
+                // std::cout << "Entrou" << std::endl;
+                for (const ArestaAux& a : this->rotulos.find(r)->second) {
+                    if (!estaoNaMesmaSubArvore(subArvore.get(), a.idOrigem, a.idDestino)) {
+                        sAux.fazerAresta(a.idOrigem, a.idDestino, r);
+                        juntarSubArvores(subArvore.get(), a.idOrigem, a.idDestino, this->numeroDeVertices());
+                        if (--numSubArvores <= 1) {
+                            // std::cout << "Achou (o que eu n garanto)" << std::endl;
+                            // for (const Vertice& v : this->listaVertices) {
+                            //     std::cout << subArvore[v.id()] << " | ";
+                            // }
+                            return sAux;
+                        }
+                    }
+                }
+
+                // std::cout << "nsa " << numSubArvores << std::endl;
+
+                // std::cout << "\nSubarvore de cada vertice" << std::endl;
+                // for (const Vertice& v : this->listaVertices) {
+                //     std::cout << v.id() << " - " << subArvore[v.id()] << " | ";
+                // }
+
+                // std::cout << "\nLC" << std::endl;
+                // for (auto l = listCand.begin(); l != listCand.end(); l++){
+                //     std::cout << *l << " ";
+                // }
+
+                listCand.erase(listCand.begin() + idx);
+
+                // std::cout << "\nLC" << std::endl;
+                // for (auto l = listCand.begin(); l != listCand.end(); l++){
+                //     std::cout << *l << " ";
+                // }
+
+                break;
+            }
+
+            idx++;
+
+            if (itSemMelhora < qualidade * 10 && idx >= tamListCand){
+                itSemMelhora += 1;
+                // qualidade += 0.1;
+            }
+            else {
+                if (itSemMelhora >= qualidade * 10){
+                    CONTINUE = false;
+                }
+            }
+        }
+    }
+
+    // if (listCand.empty()){
+    //     std::cout << "com ctz deu ruim" << std::endl;
+    // }
+    // else{
+    //     std::cout << "\nLC" << std::endl;
+    //     for (auto l = listCand.begin(); l != listCand.end(); l++){
+    //         std::cout << *l << " ";
+    //     }
+    // }
+
+    // std::cout << "num " << numSubArvores << " " << idx << std::endl;
+
+    // std::cout << "Acho que deu ruim" << std::endl;
+    // for (const Vertice& v : this->listaVertices) {
+    //     std::cout << subArvore[v.id()] << " | ";
+    // }
+
+    std::cout << "\nSubArvore: " << std::endl;
+    for (const Vertice& v : this->listaVertices) {
+        std::cout << subArvore[v.id()] << " ";
+    }
+
+    return sAux;
+}
+
+Grafo Grafo::VNS(Grafo solAtual, unique_ptr<idvertice_t[]>& subArvore, std::vector<rotulo_t> listCand) const
+{
+#define NUM_VIZINHANCAS_VNS 4
+#define IT_MAX_SEM_MELHORA 10
+    Grafo s(this->numeroDeVertices(), 0);
+    Grafo s1(this->numeroDeVertices(), 0);
+
+    // s -> melhor solução
+    s = solAtual;
+
+    size_t itSemMelhora = 0;
+    size_t k;
+
+    do {
+        bool melhoraIt = false;
+        k = 1;
+        while (k <= NUM_VIZINHANCAS_VNS) {
+
+            std::cout << "Remove" << std::endl;
+            // Pertubação
+            s1 = this->removeKRotulos(s, k, subArvore, listCand);
+            std::cout << "Repara" << std::endl;
+            // Reparo
+            s1 = this->reparaSolucao(s1, subArvore, listCand, k);
+
+            // Busca Local (talvez depois (ou não :()))
+            std::cout << "Move" << std::endl;
+            // Mover
+
+            std::cout << "\nSubArvore: " << std::endl;
+            for (const Vertice& v : this->listaVertices) {
+                std::cout << subArvore[v.id()] << " ";
+            }
+
+            std::cout << "s1 " << s1.numeroDeRotulos() << " s " << s.numeroDeRotulos() << std::endl;
+            if (s1.numeroDeRotulos() < s.numeroDeRotulos()) {
+                s = std::move(s1);
+                k = 1;
+                melhoraIt = true;
+            }
+            else {
+                k += 1;
+            }
+
+            std::cout << itSemMelhora << " " << k << std::endl;
+        }
+
+        if (melhoraIt){
+            itSemMelhora = 0;
+        }
+        else{
+            itSemMelhora++;
+        }
+    } while (itSemMelhora < IT_MAX_SEM_MELHORA);
+
+    return s;
+}
+
+Grafo Grafo::algoritmoACOHelperBL(unique_ptr<double[]>& vetorFeromonio, unique_ptr<double[]>& vetorHeuristico, size_t m, size_t minRotulos, unique_ptr<idvertice_t[]>& subArvore, std::vector<lcp>& LCP) const
+{
+
+    Grafo F(this->numeroDeVertices(), 0);
+
+    size_t subs = this->numeroDeVertices();
+    while (subs > 1 && !LCP.empty()) {
+
+        if(F.numeroDeRotulos() >= minRotulos){
+            return F;
+        }
+
+        atualizarProbabilidadesACO(LCP, vetorFeromonio, vetorHeuristico, m);
+
+        size_t aux = LCP.size();
+        rotulo_t r = (aux < 2) ? 0 : selecionaRotulo(LCP, aux);
+
+        for (const ArestaAux& a : this->rotulos.find(r)->second) {
+            if (!estaoNaMesmaSubArvore(subArvore.get(), a.idOrigem, a.idDestino)) {
+                F.fazerAresta(a.idOrigem, a.idDestino, r);
+                juntarSubArvores(subArvore.get(), a.idOrigem, a.idDestino, this->numeroDeVertices());
+                if (--subs <= 1) {
+                    return F;
+                }
+            }
+        }
+
+        auto it = std::find_if(LCP.begin(), LCP.end(), [r](const lcp& element) {
+            return element.cand == r;
+        });
+        size_t idx = std::distance(LCP.begin(), it);
+        LCP.erase(LCP.begin() + idx);
+    }
+
+    return F;
+}
+
+Grafo Grafo::algoritmoACOBuscaLocal(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const
+{
+#define PESO(r) (-this->rotulos.find(r)->second.size())
+#define CICLOSMAX 0.1*nFormigas
+
+    size_t nRotulos = this->numeroDeRotulos();
+    Grafo melhorSol(this->numeroDeVertices(), this->numeroDeRotulos());
+    Grafo solAux(this->numeroDeVertices(), 0);
+    Grafo solBL(this->numeroDeVertices(), 0);
+
+    //Inicializa o Ferômonio
+    unique_ptr<double[]> vetorFeromonio(new double[nRotulos]);
+    inicializarFeromonios(vetorFeromonio, nRotulos, tau_min, tau_max);
+
+    //Armazena o Peso Heuristico
+    size_t numeroArestasDoRotulo = 0;
+    size_t numeroTotalArestas = 0;
+    unique_ptr<double[]> vetorHeuristico(new double[nRotulos]);
+    for (rotulo_t r = 0; r < nRotulos; ++r) {
+        numeroArestasDoRotulo = this->rotulos.find(r)->second.size();
+        vetorHeuristico[r] = numeroArestasDoRotulo;
+        numeroTotalArestas += numeroArestasDoRotulo;
+        numeroArestasDoRotulo = 0;
+    }
+
+    bool isPrimeiraVez = true;
+    size_t it;
+    size_t menorNRotulos = nRotulos;
+    std::vector<rotulo_t> rotulosDaMelhorSol;
+    size_t formigasSemMelhora = 0;
+
+    //Constroi a solução ao longo das Iterações
+    for (it = 0; it <= nIteracoes; ++it) {
+
+        //Inicializa as Probabilidades
+        unique_ptr<double[]> vetorProb(new double[nRotulos]);
+        inicializarProbabilidadesACO(vetorProb, vetorHeuristico, numeroTotalArestas, nRotulos);
+
+        for(size_t fg = 1; fg <= nFormigas; ++fg){
+
+            std::vector<lcp> LCP(nRotulos);
+            unique_ptr<idvertice_t[]> subArvore(new idvertice_t[this->numeroDeVertices()]);
+
+            LCP.reserve(nRotulos);
+
+            //Lista de rótulos candidatos
+            for (rotulo_t r = 0; r < nRotulos; ++r) {
+                LCP.at(r).cand = r;
+                LCP.at(r).prob = vetorProb[r];
+            }
+            //Coloca todos os vértices na subarvore
+            for (const Vertice& v : this->listaVertices) {
+                subArvore[v.id()] = v.id();
+            }
+
+            solAux = this->algoritmoACOHelperBL(vetorFeromonio, vetorHeuristico, nRotulos, menorNRotulos, subArvore, LCP);
+
+            std::vector<rotulo_t> ListaRestante;
+            ListaRestante.reserve(nRotulos);
+            for (const auto& element : LCP) {
+                rotulo_t r = element.cand;
+                ListaRestante.push_back(r);
+            }
+
+            if (isPrimeiraVez || solAux.numeroDeRotulos() < melhorSol.numeroDeRotulos()) {
+                isPrimeiraVez = false;
+                melhorSol = std::move(solAux);
+                menorNRotulos = melhorSol.numeroDeRotulos();
+            }
+            else{
+                formigasSemMelhora++;
+            }
+            if(formigasSemMelhora >= CICLOSMAX){
+                std::cout << "\nVish, vamo tentar busca local agr alexandre " << std::endl;
+                solBL = this->VNS(solAux, subArvore, ListaRestante);
+                if (solBL.numeroDeRotulos() < melhorSol.numeroDeRotulos()){
+                    melhorSol = std::move(solBL);
+                    formigasSemMelhora = 0;
+                }
                 fg = nFormigas;
             }
 

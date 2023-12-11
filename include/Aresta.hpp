@@ -18,6 +18,8 @@ class Aresta {
 
         rotulo_t rotulo() const;
         idvertice_t idDestino() const;
+
+        bool operator==(const Aresta& other) const;
 };
 
 #endif // ARESTA_HPP
