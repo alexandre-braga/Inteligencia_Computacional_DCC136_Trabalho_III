@@ -754,7 +754,7 @@ Grafo Grafo::algoritmoACO(size_t nIteracoes, size_t nFormigas, double tau_min, d
     return melhorSol;
 }
 
-Grafo Grafo::algoritmoACOV2(size_t nIteracoes, size_t nFormigas, double tau_min, double tau_max) const
+Grafo Grafo::algoritmoACOSmoothingV2(size_t nIteracoes, size_t nFormigas, size_t bloco, double lambda_max, double zeta_max, double tau_min, double tau_max) const
 {
 #define PESO(r) (-this->rotulos.find(r)->second.size())
 #define FORMIGASMAX 0.1*nFormigas
@@ -780,12 +780,15 @@ Grafo Grafo::algoritmoACOV2(size_t nIteracoes, size_t nFormigas, double tau_min,
 
     bool isPrimeiraVez = true;
     size_t it;
-    size_t menorNRotulos = nRotulos;
-    std::vector<rotulo_t> rotulosDaMelhorFormiga;
     size_t formigasSemMelhora = 0;
+    size_t iteracoesSemMelhora = 0;
+    double lambda = 0;
+    double zeta = 0;
+    std::vector<rotulo_t> rotulosDaMelhorFormiga;
 
     //Constroi a solução ao longo das Iterações
     for (it = 0; it <= nIteracoes; ++it) {
+        bool itSemMelhora = true;
 
         //Inicializa as Probabilidades
         unique_ptr<double[]> vetorProb(new double[nRotulos]);
@@ -824,9 +827,29 @@ Grafo Grafo::algoritmoACOV2(size_t nIteracoes, size_t nFormigas, double tau_min,
         if (isPrimeiraVez || melhorFormiga.numeroDeRotulos() < melhorSol.numeroDeRotulos()) {
             isPrimeiraVez = false;
             melhorSol = std::move(melhorFormiga);
-            menorNRotulos = melhorSol.numeroDeRotulos();
+            if (itSemMelhora)
+                itSemMelhora = false;
         }
 
+        if (itSemMelhora)
+            iteracoesSemMelhora++;
+        else
+            iteracoesSemMelhora = 0;
+
+        if (iteracoesSemMelhora >= bloco){
+            if (iteracoesSemMelhora < bloco * 2){
+                lambda += lambda_max / bloco;
+                smoothingDeFeromonios(vetorFeromonio, nRotulos, lambda);
+                smoothingDeHeuristicas(vetorHeuristico, nRotulos, zeta);
+            }
+            else {
+
+                inicializarFeromonios(vetorFeromonio, nRotulos, tau_min, tau_max);
+                iteracoesSemMelhora = 0;
+                lambda = 0;
+                zeta += zeta_max / bloco;
+            }
+        }
     }
 
     return melhorSol;
